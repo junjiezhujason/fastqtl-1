@@ -52,9 +52,9 @@ void data::runNominalOutputMatrices(string dout, string fout, double threshold) 
 		LOG.println("  * Gene: " + phenotype_id[p] + "\t Number of variants in cis = " + sutils::int2str(tg_size));
         max_target_genotypes = max(max_target_genotypes, tg_size);
         // save the gene name and cis var counts 
-        g_file << phenotype_id[p] << "\t" << tg_size <<  "\n";
+        g_file << phenotype_id[p] << "\n";
         // save the variant names to file
-        string v_out = dout+"/Vars_" + sutils::int2str(p) + ".txt";
+        string v_out = dout+"/Vars_" + phenotype_id[p] + ".txt";
         ofile v_file (v_out);
         for (int g = 0 ; g < targetGenotypes.size() ; g ++)    
             v_file << genotype_id[targetGenotypes[g]] << "\n";
@@ -80,8 +80,8 @@ void data::runNominalOutputMatrices(string dout, string fout, double threshold) 
 		}
         int tg_size = (int) targetGenotypes.size();
         //0.2 Save the responses for this gene
-        string y_out = dout+"/y_" + sutils::int2str(p) + ".npy";
-        string x_out = dout+"/X_" + sutils::int2str(p) + ".npy";
+        string y_out = dout+"/y_" + phenotype_id[p] + ".npy";
+        string x_out = dout+"/X_" + phenotype_id[p] + ".npy";
         const unsigned int x_shape[] = {sample_count,tg_size};
         const unsigned int y_shape[] = {sample_count};
         for(unsigned i=0;i<x_shape[0];i++){
