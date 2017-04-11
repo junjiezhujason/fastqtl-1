@@ -66,8 +66,8 @@ void data::runNominalOutputMatrices(string dout, string fout, double threshold) 
 
     // pass 2: save the data to npy files (used info from pass 1 to allocate memory)
     LOG.println("\nSaving data (X, y)");
-    float* x_data = new float[sample_count*max_target_genotypes];
-    float* y_data = new float[sample_count];
+    double* x_data = new double[sample_count*max_target_genotypes];
+    double* y_data = new double[sample_count];
 	for (int p = 0 ; p < phenotype_count ; p ++) {
 		//0.1. Enumerate all genotype-phenotype pairs within cis-window
 		vector < int > targetGenotypes, targetDistances;
@@ -86,9 +86,9 @@ void data::runNominalOutputMatrices(string dout, string fout, double threshold) 
         const unsigned int y_shape[] = {sample_count};
         for(unsigned i=0;i<x_shape[0];i++){
             for(unsigned j=0;j<x_shape[1];j++){
-                x_data[i*x_shape[1]+j] = genotype_orig[targetGenotypes[j]][i];
+                x_data[i*x_shape[1]+j] = (double) genotype_orig[targetGenotypes[j]][i];
             }
-            y_data[i] = phenotype_orig[p][i];
+            y_data[i] = (double) phenotype_orig[p][i];
         }
         cnpy::npy_save(x_out,x_data,x_shape,2,"w");
 		LOG.println("  * Saved eQTL X matirx to [" + x_out + "]");
@@ -104,7 +104,7 @@ void data::runNominalOutputMatrices(string dout, string fout, double threshold) 
 	normalize(genotype_orig);
 	normalize(phenotype_orig);
 
-    float* p_data = new float[max_target_genotypes];
+    double* p_data = new double[max_target_genotypes];
 	//1. Loop over phenotypes
 	ofile fdo (fout);
 	for (int p = 0 ; p < phenotype_count ; p ++) {
@@ -142,7 +142,7 @@ void data::runNominalOutputMatrices(string dout, string fout, double threshold) 
 				fdo << "\t" << slope;
 				fdo << "\t" << slope_se;
 				fdo << endl;
-                p_data[g] = (float) pval;
+                p_data[g] = pval;
 			}
 		}
         cnpy::npy_save(p_out,p_data,p_shape,1,"w");
