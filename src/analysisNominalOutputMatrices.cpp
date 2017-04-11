@@ -104,6 +104,7 @@ void data::runNominalOutputMatrices(string dout, string fout, double threshold) 
 	normalize(genotype_orig);
 	normalize(phenotype_orig);
 
+    float* p_data = new float[max_target_genotypes];
 	//1. Loop over phenotypes
 	ofile fdo (fout);
 	for (int p = 0 ; p < phenotype_count ; p ++) {
@@ -122,6 +123,10 @@ void data::runNominalOutputMatrices(string dout, string fout, double threshold) 
 		LOG.println("  * Number of variants in cis = " + sutils::int2str(targetGenotypes.size()));
 
 		//1.2. Nominal pass: scan cis-window & compute statistics
+        string p_out = dout+"/pval_" + phenotype_id[p] + ".npy";
+        int tg_size = (int) targetGenotypes.size();
+        const unsigned int p_shape[] = {tg_size};
+
 		for (int g = 0 ; g < targetGenotypes.size() ; g ++) {
 			double corr = getCorrelation(genotype_orig[targetGenotypes[g]], phenotype_orig[p]);
 			double df = sample_count - 2 - covariate_count;
@@ -137,10 +142,14 @@ void data::runNominalOutputMatrices(string dout, string fout, double threshold) 
 				fdo << "\t" << slope;
 				fdo << "\t" << slope_se;
 				fdo << endl;
+                p_data[g] = (float) pval;
 			}
 		}
+        cnpy::npy_save(p_out,p_data,p_shape,1,"w");
+		LOG.println("  * Saved eQTL p-value vector to [" + p_out + "]");
 		LOG.println("  * Progress = " + sutils::double2str((p+1) * 100.0 / phenotype_count, 1) + "%");
 	}
+    delete[] p_data;
 	fdo.close();
 }
 
