@@ -48,8 +48,11 @@ void data::runNominalOutputMatrices(string dout, string fout, double threshold) 
 				targetDistances.push_back(cisdistance);
 			}
 		}
+
         int tg_size = (int) targetGenotypes.size();
 		LOG.println("  * Gene: " + phenotype_id[p] + "\t Number of variants in cis = " + sutils::int2str(tg_size));
+        if (tg_size == 0) continue; // do not record genes with no variants
+
         max_target_genotypes = max(max_target_genotypes, tg_size);
         // save the gene name and cis var counts 
         g_file << phenotype_id[p] << "\n";
@@ -79,6 +82,7 @@ void data::runNominalOutputMatrices(string dout, string fout, double threshold) 
 			}
 		}
         int tg_size = (int) targetGenotypes.size();
+        if (tg_size == 0) continue; // do not record genes with no variants
         //0.2 Save the responses for this gene
         string y_out = dout+"/y_" + phenotype_id[p] + ".npy";
         string x_out = dout+"/X_" + phenotype_id[p] + ".npy";
@@ -123,8 +127,10 @@ void data::runNominalOutputMatrices(string dout, string fout, double threshold) 
 		LOG.println("  * Number of variants in cis = " + sutils::int2str(targetGenotypes.size()));
 
 		//1.2. Nominal pass: scan cis-window & compute statistics
-        string p_out = dout+"/pval_" + phenotype_id[p] + ".npy";
         int tg_size = (int) targetGenotypes.size();
+        if (tg_size == 0) continue; // do not record genes with no variants
+
+        string p_out = dout + "/pval_" + phenotype_id[p] + ".npy";
         const unsigned int p_shape[] = {tg_size};
 
 		for (int g = 0 ; g < targetGenotypes.size() ; g ++) {
