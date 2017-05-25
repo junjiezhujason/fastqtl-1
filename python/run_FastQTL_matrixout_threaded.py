@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Author: Francois Aguet
+# Author: Francois Aguet, Junjie Zhu
 import argparse
 import os
 import numpy as np
