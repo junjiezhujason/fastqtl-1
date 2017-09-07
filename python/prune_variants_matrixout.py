@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # Author: Junjie Zhu
 
 from __future__ import print_function
@@ -66,17 +66,18 @@ def write_sel_index_set(chunk_path, sel_map):
                 counter += 1
         print("{}\t{}\t{}".format(gene, len(prune_list), counter))
         np.save(s_fname, np.array(prune_list))
-    
-
-
 
 ##########################
 if __name__ == "__main__":
 
-    main_path = "/share/PI/sabatti/controlled_access_gtex_data/our_analysis"
-    tmp_path  = "/scratch/PI/sabatti/controlled_access_data/fastqtl_tmp" 
+    main_path = str(sys.argv[1]) # "/share/PI/sabatti/controlled_access_gtex_data/our_analysis"
+    tmp_path  = str(sys.argv[2]) # "/scratch/PI/sabatti/controlled_access_data/fastqtl_tmp" 
+    tissue = str(sys.argv[3])    # "Muscle_Skeletal"
 
-    tissue = "Muscle_Skeletal"
+    # print(main_path)
+    # print(tmp_path)
+    # print(tissue)
+
     tissue_map = load_tissue_map(path.join(main_path, "variant_pruning", "tissue_alt_names.txt"))
 
     tissue_fname_pfx = path.join(main_path,"variant_pruning","ld-subset", tissue_map[tissue])
