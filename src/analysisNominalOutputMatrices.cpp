@@ -35,7 +35,19 @@ void data::runNominalOutputMatrices(string dout, string fout, double threshold) 
     // pass 1: count how many variants there are per gene, save the variants to file as well
     LOG.println("\nSaving genes and variant information");
     string g_out = dout + "/Genes.txt";
+    string maf_out = dout + "/MAFs.txt";
+
 	if (!futils::createFile(g_out)) LOG.error(g_out + " is impossible to create, check permissions");
+	if (!futils::createFile(maf_out)) LOG.error(maf_out + " is impossible to create, check permissions");
+
+    // Save the MAFs to file
+    ofile maf_file (maf_out);
+    for (int g = 0 ; g < genotype_count ; g ++) {
+        maf_file <<genotype_id[g] << "\t" << genotype_maf[g] << "\n";
+    }
+    maf_file.close();
+    LOG.println("Written mafs to: " + maf_out); 
+
     ofile g_file (g_out);
     int max_target_genotypes = 0;
 	for (int p = 0 ; p < phenotype_count ; p ++) {
