@@ -19,6 +19,89 @@
 
 void data::runNominalOutputMatrices(string dout, string fout, double threshold) {
 
+    // Save the data to file 
+    // ---------------------
+    LOG.println("\nSaving genes and variant information");
+    string maf_out = dout + "/variants_mafs.txt";
+    string g_out = dout + "/gene_names.txt";
+	if (!futils::createFile(g_out)) LOG.error(g_out + " is impossible to create, check permissions");
+	if (!futils::createFile(maf_out)) LOG.error(maf_out + " is impossible to create, check permissions");
+    // Save the MAFs to file
+    ofile maf_file (maf_out);
+    for (int g = 0; g < genotype_count ; g ++) maf_file <<genotype_id[g] << "\t" << genotype_maf[g] << "\n";
+    maf_file.close();
+    LOG.println("Written mafs to: " + maf_out); 
+    // Save the gene names to file
+    // Save the original genotypes to file
+    // TODO: use int for genotype data
+    string gt_out = dout+"/genotype_data.npy";
+    double* gt_data = new double[sample_count*genotype_count];
+    const unsigned int gt_shape[] = {sample_count, genotype_count};
+    for (unsigned i=0; i<gt_shape[0]; i++){
+        for(unsigned j=0; j<gt_shape[1]; j++){
+            gt_data[i*gt_shape[1]+j] = (double) genotype_orig[j][i];
+        }
+    }
+    cnpy::npy_save(gt_out,gt_data,gt_shape,2,"w");
+    delete[] gt_data;
+    LOG.println("Written genotypes to: " + gt_out );
+    // Save the original phenotypes to file
+    // string pt_out = dout+"/phenotype_data.npy";
+    // double* pt_data = new double[sample_count*phenotype_count];
+    // const unsigned int pt_shape[] = {sample_count, phenotype_count};
+    // for (unsigned i=0; i<pt_shape[0]; i++){
+    //     for(unsigned j=0; j<pt_shape[1]; j++){
+    //         pt_data[i*pt_shape[1]+j] = (double) phenotype_orig[j][i];
+    //     }
+    // }
+    // cnpy::npy_save(pt_out,pt_data,pt_shape,2,"w");
+    // delete[] pt_data;
+    // LOG.println("Written genotypes to: " + pt_out );
+    // Save indices in genotype for each gene
+    ofile g_file (g_out);
+    // TODO: use int for v_data
+    double* v_data = new double[genotype_count];
+    double* y_data = new double[sample_count];
+	for (int p = 0 ; p < 1; p ++) {
+	// for (int p = 0 ; p < phenotype_count ; p ++) {
+		// Enumerate all genotype-phenotype pairs within cis-window
+		vector < int > targetGenotypes, targetDistances;
+		for (int g = 0 ; g < genotype_count ; g ++) {
+			int cisdistance = genotype_pos[g] - phenotype_start[p];
+			if (abs(cisdistance) <= cis_window) {
+				targetGenotypes.push_back(g);
+				targetDistances.push_back(cisdistance);
+			}
+		}
+        int tg_size = (int) targetGenotypes.size();
+        if (tg_size == 0) {
+            continue; // do not record genes with no variants
+        } else {
+            g_file << p << "\t" << phenotype_id[p] << "\n"; 
+        }
+        // Save the responses for this gene
+        string v_out = dout+"/v_" + phenotype_id[p] + ".npy";
+        string y_out = dout+"/y_" + phenotype_id[p] + ".npy";
+        const unsigned int v_shape[] = {tg_size};
+        const unsigned int y_shape[] = {sample_count};
+        for(unsigned i=0; i<sample_count; i++) y_data[i] = (double) phenotype_orig[p][i];
+        for(unsigned j=0; j<tg_size; j++)  v_data[j] = (double) targetGenotypes[j];
+        cnpy::npy_save(v_out,v_data,v_shape,1,"w");
+        cnpy::npy_save(y_out,y_data,y_shape,1,"w");
+		// LOG.println("  * Saved eQTL incides vector to [" + v_out + "]");
+		// LOG.println("  * Progress = " + sutils::double2str((p+1) * 100.0 / phenotype_count, 1) + "%");
+    }
+    delete[] v_data;
+    delete[] y_data;
+    g_file.close();
+    LOG.println("Written genes to: " + g_out); 
+
+    // TODO: remove me after debug
+    LOG.error(" DEBUGGING - STOPPED HERE ") ;
+
+    // --------------------------------------------
+    
+
 	//0. Prepare genotypes
 	vector < double > genotype_sd = vector < double > (genotype_count, 0.0);
 	vector < double > phenotype_sd = vector < double > (phenotype_count, 0.0);
@@ -31,24 +114,8 @@ void data::runNominalOutputMatrices(string dout, string fout, double threshold) 
 	for (int p = 0 ; p < phenotype_count ; p ++) phenotype_sd[p] = RunningStat(phenotype_orig[p]).StandardDeviation();
 
     // -------------------------------------------------------------------------------------------------------------- 
-    // Save the data to file 
     // pass 1: count how many variants there are per gene, save the variants to file as well
-    LOG.println("\nSaving genes and variant information");
-    string g_out = dout + "/Genes.txt";
-    string maf_out = dout + "/MAFs.txt";
 
-	if (!futils::createFile(g_out)) LOG.error(g_out + " is impossible to create, check permissions");
-	if (!futils::createFile(maf_out)) LOG.error(maf_out + " is impossible to create, check permissions");
-
-    // Save the MAFs to file
-    ofile maf_file (maf_out);
-    for (int g = 0 ; g < genotype_count ; g ++) {
-        maf_file <<genotype_id[g] << "\t" << genotype_maf[g] << "\n";
-    }
-    maf_file.close();
-    LOG.println("Written mafs to: " + maf_out); 
-
-    ofile g_file (g_out);
     int max_target_genotypes = 0;
 	for (int p = 0 ; p < phenotype_count ; p ++) {
 		// enumerate all genotype-phenotype pairs within cis-window
@@ -67,7 +134,6 @@ void data::runNominalOutputMatrices(string dout, string fout, double threshold) 
 
         max_target_genotypes = max(max_target_genotypes, tg_size);
         // save the gene name and cis var counts 
-        g_file << phenotype_id[p] << "\n";
         // save the variant names to file
         string v_out = dout+"/Vars_" + phenotype_id[p] + ".txt";
         ofile v_file (v_out);
@@ -75,14 +141,12 @@ void data::runNominalOutputMatrices(string dout, string fout, double threshold) 
             v_file << genotype_id[targetGenotypes[g]] << "\n";
         v_file.close();
     }
-    g_file.close();
     LOG.println("Maximum number of variants in cis = " + sutils::int2str(max_target_genotypes));
-    LOG.println("Written genes to: " + g_out); 
 
     // pass 2: save the data to npy files (used info from pass 1 to allocate memory)
-    LOG.println("\nSaving data (X, y)");
-    double* x_data = new double[sample_count*max_target_genotypes];
-    double* y_data = new double[sample_count];
+    // LOG.println("\nSaving data (X, y)");
+    // double* x_data = new double[sample_count*max_target_genotypes];
+    // double* y_data = new double[sample_count];
 	for (int p = 0 ; p < phenotype_count ; p ++) {
 		//0.1. Enumerate all genotype-phenotype pairs within cis-window
 		vector < int > targetGenotypes, targetDistances;
@@ -96,24 +160,24 @@ void data::runNominalOutputMatrices(string dout, string fout, double threshold) 
         int tg_size = (int) targetGenotypes.size();
         if (tg_size == 0) continue; // do not record genes with no variants
         //0.2 Save the responses for this gene
-        string y_out = dout+"/y_" + phenotype_id[p] + ".npy";
-        string x_out = dout+"/X_" + phenotype_id[p] + ".npy";
-        const unsigned int x_shape[] = {sample_count,tg_size};
-        const unsigned int y_shape[] = {sample_count};
-        for(unsigned i=0;i<x_shape[0];i++){
-            for(unsigned j=0;j<x_shape[1];j++){
-                x_data[i*x_shape[1]+j] = (double) genotype_orig[targetGenotypes[j]][i];
-            }
-            y_data[i] = (double) phenotype_orig[p][i];
-        }
-        cnpy::npy_save(x_out,x_data,x_shape,2,"w");
-		LOG.println("  * Saved eQTL X matirx to [" + x_out + "]");
-        cnpy::npy_save(y_out,y_data,y_shape,1,"w");
-		LOG.println("  * Saved eQTL y vector to [" + y_out + "]");
-		LOG.println("  * Progress = " + sutils::double2str((p+1) * 100.0 / phenotype_count, 1) + "%");
+        // string y_out = dout+"/y_" + phenotype_id[p] + ".npy";
+        // string x_out = dout+"/X_" + phenotype_id[p] + ".npy";
+        // const unsigned int x_shape[] = {sample_count,tg_size};
+        // const unsigned int y_shape[] = {sample_count};
+        // for(unsigned i=0;i<x_shape[0];i++){
+            // for(unsigned j=0;j<x_shape[1];j++){
+            //     x_data[i*x_shape[1]+j] = (double) genotype_orig[targetGenotypes[j]][i];
+            // }
+        //     y_data[i] = (double) phenotype_orig[p][i];
+        // }
+        // cnpy::npy_save(x_out,x_data,x_shape,2,"w");
+		// LOG.println("  * Saved eQTL X matirx to [" + x_out + "]");
+        // cnpy::npy_save(y_out,y_data,y_shape,1,"w");
+		// LOG.println("  * Saved eQTL y vector to [" + y_out + "]");
+		// LOG.println("  * Progress = " + sutils::double2str((p+1) * 100.0 / phenotype_count, 1) + "%");
     }
-    delete[] x_data;
-    delete[] y_data;
+    // delete[] x_data;
+    // delete[] y_data;
     // -------------------------------------------------------------------------------------------------------------- 
 
 
