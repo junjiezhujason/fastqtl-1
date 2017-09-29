@@ -22,8 +22,8 @@ void data::runNominalOutputMatrices(string dout, string fout, double threshold) 
     // Save the data to file 
     // ---------------------
     LOG.println("\nSaving genes and variant information");
-    string maf_out = dout + "/variants_mafs.txt";
-    string g_out = dout + "/gene_names.txt";
+    string maf_out = dout + "/meta_variants_mafs.txt";
+    string g_out = dout + "/meta_gene_names.txt";
 	if (!futils::createFile(g_out)) LOG.error(g_out + " is impossible to create, check permissions");
 	if (!futils::createFile(maf_out)) LOG.error(maf_out + " is impossible to create, check permissions");
     // Save the MAFs to file
@@ -34,35 +34,41 @@ void data::runNominalOutputMatrices(string dout, string fout, double threshold) 
     // Save the gene names to file
     // Save the original genotypes to file
     // TODO: use int for genotype data
+    string gt_f_out = dout+"/genotype_data_float.npy";
+    double* gt_f_data = new double[sample_count*genotype_count];
+    const unsigned int gt_f_shape[] = {sample_count, genotype_count};
+    for (unsigned i=0; i<gt_f_shape[0]; i++){
+        for(unsigned j=0; j<gt_f_shape[1]; j++){
+            gt_f_data[i*gt_f_shape[1]+j] = (double) genotype_orig[j][i];
+        }
+    }
+    cnpy::npy_save(gt_f_out,gt_f_data,gt_f_shape,2,"w");
+    delete[] gt_f_data;
+    LOG.println("Written genotypes to: " + gt_f_out );
+
+    // int version 
     string gt_out = dout+"/genotype_data.npy";
-    double* gt_data = new double[sample_count*genotype_count];
+    int* gt_data = new int[sample_count*genotype_count];
     const unsigned int gt_shape[] = {sample_count, genotype_count};
+    int gt_value; // should be 0, 1, 2
     for (unsigned i=0; i<gt_shape[0]; i++){
         for(unsigned j=0; j<gt_shape[1]; j++){
-            gt_data[i*gt_shape[1]+j] = (double) genotype_orig[j][i];
+            // because there are imputed genotype values, do some rounding here
+            gt_value = (int) round(genotype_orig[j][i]);
+            gt_value = (gt_value > 2) ? 2 : gt_value;
+            gt_value = (gt_value < 0) ? 0 : gt_value;
+            gt_data[i*gt_shape[1]+j] = gt_value;
         }
     }
     cnpy::npy_save(gt_out,gt_data,gt_shape,2,"w");
     delete[] gt_data;
-    LOG.println("Written genotypes to: " + gt_out );
-    // Save the original phenotypes to file
-    // string pt_out = dout+"/phenotype_data.npy";
-    // double* pt_data = new double[sample_count*phenotype_count];
-    // const unsigned int pt_shape[] = {sample_count, phenotype_count};
-    // for (unsigned i=0; i<pt_shape[0]; i++){
-    //     for(unsigned j=0; j<pt_shape[1]; j++){
-    //         pt_data[i*pt_shape[1]+j] = (double) phenotype_orig[j][i];
-    //     }
-    // }
-    // cnpy::npy_save(pt_out,pt_data,pt_shape,2,"w");
-    // delete[] pt_data;
-    // LOG.println("Written genotypes to: " + pt_out );
+    LOG.println("Written genotypes to: " + gt_out);
+
     // Save indices in genotype for each gene
     ofile g_file (g_out);
-    // TODO: use int for v_data
-    double* v_data = new double[genotype_count];
+    int* v_data = new int[genotype_count];
     double* y_data = new double[sample_count];
-	for (int p = 0 ; p < 1; p ++) {
+	for (int p = 0 ; p < 5; p ++) {
 	// for (int p = 0 ; p < phenotype_count ; p ++) {
 		// Enumerate all genotype-phenotype pairs within cis-window
 		vector < int > targetGenotypes, targetDistances;
@@ -85,7 +91,7 @@ void data::runNominalOutputMatrices(string dout, string fout, double threshold) 
         const unsigned int v_shape[] = {tg_size};
         const unsigned int y_shape[] = {sample_count};
         for(unsigned i=0; i<sample_count; i++) y_data[i] = (double) phenotype_orig[p][i];
-        for(unsigned j=0; j<tg_size; j++)  v_data[j] = (double) targetGenotypes[j];
+        for(unsigned j=0; j<tg_size; j++)  v_data[j] = (int) targetGenotypes[j];
         cnpy::npy_save(v_out,v_data,v_shape,1,"w");
         cnpy::npy_save(y_out,y_data,y_shape,1,"w");
 		// LOG.println("  * Saved eQTL incides vector to [" + v_out + "]");
@@ -96,12 +102,8 @@ void data::runNominalOutputMatrices(string dout, string fout, double threshold) 
     g_file.close();
     LOG.println("Written genes to: " + g_out); 
 
-    // TODO: remove me after debug
-    LOG.error(" DEBUGGING - STOPPED HERE ") ;
 
     // --------------------------------------------
-    
-
 	//0. Prepare genotypes
 	vector < double > genotype_sd = vector < double > (genotype_count, 0.0);
 	vector < double > phenotype_sd = vector < double > (phenotype_count, 0.0);
@@ -109,9 +111,38 @@ void data::runNominalOutputMatrices(string dout, string fout, double threshold) 
 		LOG.println("\nCorrecting genotypes & phenotypes for covariates");
 		covariate_engine->residualize(genotype_orig);
 		covariate_engine->residualize(phenotype_orig);
+        // print covariates to file
+        // TODO: maybe remve later
+        string cov_out = dout+"/covariate_data_float.npy";
+        double* cov_data = new double[sample_count*(covariate_count+1)];
+        const unsigned int cov_shape[] = {sample_count,covariate_count+1};
+        for (unsigned i=0; i<cov_shape[0]; i++){
+            for(unsigned j=0; j<cov_shape[1]; j++){
+                cov_data[i*cov_shape[1]+j] = (double) covariate_engine->covarM(i, j);
+            }
+        }
+        cnpy::npy_save(cov_out,cov_data,cov_shape,2,"w");
+        delete[] cov_data;
+        LOG.println("Written covariates to: " + cov_out );
 	}
 	for (int g = 0 ; g < genotype_count ; g ++) genotype_sd[g] = RunningStat(genotype_orig[g]).StandardDeviation();
 	for (int p = 0 ; p < phenotype_count ; p ++) phenotype_sd[p] = RunningStat(phenotype_orig[p]).StandardDeviation();
+
+    // *** save regressed genotypes for debugging
+    string ro_out = dout+"/genotype_data_reg_out_float.npy";
+    double* ro_data = new double[sample_count*genotype_count];
+    const unsigned int ro_shape[] = {sample_count, genotype_count};
+    for (unsigned i=0; i<ro_shape[0]; i++){
+        for(unsigned j=0; j<ro_shape[1]; j++){
+            ro_data[i*ro_shape[1]+j] = (double) genotype_orig[j][i];
+        }
+    }
+    cnpy::npy_save(ro_out,ro_data,ro_shape,2,"w");
+    delete[] ro_data;
+    LOG.println("Written regressed genotypes to: " + ro_out );
+
+    // TODO: remove me after debug
+    LOG.error(" DEBUGGING - STOPPED HERE ") ;
 
     // -------------------------------------------------------------------------------------------------------------- 
     // pass 1: count how many variants there are per gene, save the variants to file as well
