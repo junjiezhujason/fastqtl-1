@@ -1,9 +1,7 @@
 #PLEASE SPECIFY THE R path here where you built the R math library standalone 
-RMATH=/home/jjzhu/src/R-3.2.0/src
-CBOOST=/home/jjzhu/src/boost_1_58_0
-CNPY=/home/jjzhu/src/cnpy
-
-
+RMATH=/share/PI/sabatti/shared_src/R-3.2.0/src
+CBOOST=/share/PI/sabatti/shared_src/boost_1_58_0
+CNPY=/share/PI/sabatti/shared_src/cnpy
 
 #compiler
 CXX=g++ -std=c++11

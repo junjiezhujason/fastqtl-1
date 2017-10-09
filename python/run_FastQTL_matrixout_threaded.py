@@ -44,10 +44,18 @@ def perm_worker(inputs):
     chunk = inputs[1]
     # create mtx out directory
     mtx_dir = args.prefix+'_chunk{0:03d}_mtx'.format(chunk)
+    var_dir = os.path.join(mtx_dir, 'cis_vars')
+    pval_dir = os.path.join(mtx_dir, 'cis_pvals')
     cmd = "mkdir -p "+mtx_dir
+    subprocess.check_call(cmd, shell=True, executable='/bin/bash')
+    cmd = "mkdir -p "+var_dir
+    subprocess.check_call(cmd, shell=True, executable='/bin/bash')
+    cmd = "mkdir -p "+pval_dir
     subprocess.check_call(cmd, shell=True, executable='/bin/bash')
     print('')
     print('Created '+mtx_dir)
+    print('Created '+var_dir)
+    print('Created '+pval_dir)
     # run fastqtl command
     cmd = get_cmd(args, chunk)
     print('Processing chunk '+str(chunk), flush=True)

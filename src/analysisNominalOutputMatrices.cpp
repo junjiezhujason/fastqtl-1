@@ -24,6 +24,8 @@ void data::runNominalOutputMatrices(string dout, string fout, double threshold) 
     LOG.println("\nSaving genes and variant information");
     string maf_out = dout + "/meta_variants_mafs.txt";
     string g_out = dout + "/meta_gene_names.txt";
+    string dvout = dout + "/cis_vars";
+    string dpout = dout + "/cis_pvals";
 	if (!futils::createFile(g_out)) LOG.error(g_out + " is impossible to create, check permissions");
 	if (!futils::createFile(maf_out)) LOG.error(maf_out + " is impossible to create, check permissions");
     // Save the MAFs to file
@@ -47,7 +49,7 @@ void data::runNominalOutputMatrices(string dout, string fout, double threshold) 
     LOG.println("Written genotypes to: " + gt_f_out );
 
     // int version 
-    string gt_out = dout+"/genotype_data.npy";
+    string gt_out = dout+"/genotype_data_int.npy";
     int64_t* gt_data = new int64_t[sample_count*genotype_count];
     const unsigned int gt_shape[] = {(unsigned int) sample_count, (unsigned int) genotype_count};
     int64_t gt_value; // should be 0, 1, 2
@@ -83,7 +85,7 @@ void data::runNominalOutputMatrices(string dout, string fout, double threshold) 
         if (tg_size == 0) { continue; }// do not record genes with no variants 
         g_file << phenotype_id[p] << "\n"; 
         // Save the responses for this gene
-        string v_out = dout+"/v_" + phenotype_id[p] + ".npy";
+        string v_out = dvout+"/v_" + phenotype_id[p] + ".npy";
         const unsigned int v_shape[] = {(unsigned int) tg_size};
         for(unsigned j=0; j<tg_size; j++)  v_data[j] = (int64_t) targetGenotypes[j];
         cnpy::npy_save(v_out,v_data,v_shape,1,"w");
@@ -194,7 +196,7 @@ void data::runNominalOutputMatrices(string dout, string fout, double threshold) 
         int tg_size = (int) targetGenotypes.size();
         if (tg_size == 0) continue; // do not record genes with no variants
 
-        string p_out = dout + "/pval_" + phenotype_id[p] + ".npy";
+        string p_out = dpout + "/pval_" + phenotype_id[p] + ".npy";
         const unsigned int p_shape[] = {(unsigned int) tg_size};
 
 		for (int g = 0 ; g < targetGenotypes.size() ; g ++) {
