@@ -1,11 +1,13 @@
 ## FastQTL
 
+
 This repository contains a modified version of the [FastQTL](http://fastqtl.sourceforge.net/) QTL mapping software, with the following enhancements:
 
 1. Options for filtering by minor allele frequency and minor allele sample count
 2. Python wrapper for multi-threaded execution
 3. Calculation of q-values (Storey) for FDR estimation (requires R)
 4. Minor allele information reported in output
+5. Output of the X (genotypes) and Y (phenotypes)  matrices in npy format
 
 For documentation and the original version, see: http://fastqtl.sourceforge.net/
 
